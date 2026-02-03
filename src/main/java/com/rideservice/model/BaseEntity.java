@@ -19,4 +19,5 @@ public class BaseEntity {
     private Long modifiedBy;
     private LocalDateTime modifiedAt;
     private boolean isDeleted;
+    private String uuid;
 }

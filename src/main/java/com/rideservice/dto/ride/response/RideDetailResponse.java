@@ -2,13 +2,14 @@ package com.rideservice.dto.ride.response;
 
 import java.time.LocalDateTime;
 
-public interface ListingResponseDto {
-    Long getRideId();
+public interface RideDetailResponse {
+    String getRideUuid();
     Long getAvailableSeats();
     String getFrom();
     String getTo();
     Long getPrice();
-    LocalDateTime getTime();
+    LocalDateTime getStartTime();
+    LocalDateTime getEndTime();
     Long getDriverId();
     Long getCarId();
 }

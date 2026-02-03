@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static com.rideservice.utils.AuditDetailUtil.addRideCreationDetails;
 import static com.rideservice.utils.AuditDetailUtil.addRideSegmentCreationDetails;
@@ -26,11 +27,11 @@ public class RideMapper {
 
     public RideResponseDto toRideResponseDto(Ride ride) {
         RideResponseDto rideResponseDto = new RideResponseDto();
-        rideResponseDto.setId(ride.getId());
+        rideResponseDto.setUuid(ride.getUuid());
         rideResponseDto.setStartTime(ride.getStartTime());
         rideResponseDto.setDriverId(ride.getDriverId());
         rideResponseDto.setCarId(ride.getCarId());
-        List<StopsResponseDto>  stopsResponseDto = toStopResponseDto(ride.getRideStops());
+        List<StopsResponseDto> stopsResponseDto = toStopResponseDto(ride.getRideStops());
         rideResponseDto.setStops(stopsResponseDto);
         return rideResponseDto;
     }
@@ -39,7 +40,7 @@ public class RideMapper {
         List<StopsResponseDto> stopsResponseDtos = new ArrayList<>();
         for (RideStop rideStop : rideStops) {
             StopsResponseDto stopsResponseDto = new StopsResponseDto();
-            stopsResponseDto.setId(rideStop.getId());
+            stopsResponseDto.setUuid(rideStop.getUuid());
             stopsResponseDto.setPrice(rideStop.getPrice());
             stopsResponseDto.setDurationOffset(rideStop.getDurationOffset());
             stopsResponseDto.setName(rideStop.getStop().getName());
@@ -55,6 +56,7 @@ public class RideMapper {
         ride.setDriverId(rideCreationDto.getDriverId());
         ride.setStartTime(rideCreationDto.getStartTime());
         ride.setTotalSeats(rideCreationDto.getTotalSeats());
+        ride.setUuid(UUID.randomUUID().toString());
         addRideCreationDetails(ride);
         mapStopsAndSeatSegments(rideCreationDto, ride);
         return ride;
@@ -65,11 +67,12 @@ public class RideMapper {
         List<RideStop> stops = toStop(stopsDtos, ride);
         ride.setRideStops(stops);
         List<RideSegmentSeat> rideSegmentSeats = new ArrayList<>();
-        for (long i = 0; i < stops.size()-1; i++) {
+        for (long i = 0; i < stops.size() - 1; i++) {
             RideSegmentSeat rideSegmentSeat = new RideSegmentSeat();
             rideSegmentSeat.setAvailableSeats(rideCreationDto.getTotalSeats());
-            rideSegmentSeat.setFromSequence(i+1);
-            rideSegmentSeat.setToSequence(i+2);
+            rideSegmentSeat.setFromSequence(i + 1);
+            rideSegmentSeat.setToSequence(i + 2);
+            rideSegmentSeat.setUuid(UUID.randomUUID().toString());
             rideSegmentSeat.setRide(ride);
             addRideSegmentCreationDetails(rideSegmentSeat);
             rideSegmentSeats.add(rideSegmentSeat);
@@ -82,17 +85,16 @@ public class RideMapper {
         long sequence = 1;
         for (StopsDto stopsDto : stopsDtos) {
             RideStop rideStop = new RideStop();
-            Location location = locationService.getLocation(stopsDto.getName());
+            Location location = locationService.getLocation(stopsDto.getName().toString());
             rideStop.setStop(location);
             rideStop.setSequence(sequence++);
             rideStop.setPrice(stopsDto.getPrice());
             rideStop.setDurationOffset(stopsDto.getDurationOffset());
             rideStop.setRide(ride);
+            rideStop.setUuid(UUID.randomUUID().toString());
             rideStops.add(rideStop);
             addRideStopCreationDetails(rideStop);
         }
         return rideStops;
     }
-
-
 }

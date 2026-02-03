@@ -10,7 +10,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StopsResponseDto {
-    private Long id;
+    private String uuid;
     private String name;
     private Long price;
     private Long durationOffset;

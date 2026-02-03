@@ -1,6 +1,6 @@
 package com.rideservice.repository;
 
-import com.rideservice.dto.ride.response.ListingResponseDto;
+import com.rideservice.dto.ride.response.RideDetailResponse;
 import com.rideservice.model.Ride;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -8,19 +8,28 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface RideRepository extends JpaRepository<Ride, Long> {
     @Query(value = """
             SELECT
-              r.id AS rideId,
+              r.uuid AS rideUuid,
               price_sum.price AS price,
               MIN(COALESCE(s.available_seats, 0)) AS availableSeats,
               :from AS from,
               :to AS to,
               r.driver_id AS driverId,
               r.car_id AS carId,
-              r.start_time + (sa.duration_offset || ' minutes')::interval AS time
+            
+              r.start_time +
+              (
+                SELECT SUM(rs.duration_offset)
+                FROM ride_stop rs
+                WHERE rs.ride_id = r.id
+                  AND rs.sequence <= sa.sequence
+              ) * INTERVAL '1 minute' AS startTime
+            
             FROM ride r
             
             JOIN ride_stop sa
@@ -44,14 +53,33 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
              AND s.from_sequence >= sa.sequence
              AND s.to_sequence <= sb.sequence
             
-            WHERE r.status <> 'COMPLETED'
-              AND sa.sequence < sb.sequence
-              AND r.start_time
-                    + (sa.duration_offset || ' minutes')::interval >= :dayStart
-              AND r.start_time
-                    + (sa.duration_offset || ' minutes')::interval < :dayEnd
-              AND r.start_time
-                    + (sa.duration_offset || ' minutes')::interval >= NOW()
+            WHERE sa.sequence < sb.sequence
+            
+              -- pickup in selected day window
+              AND r.start_time +
+                  (
+                    SELECT SUM(rs.duration_offset)
+                    FROM ride_stop rs
+                    WHERE rs.ride_id = r.id
+                      AND rs.sequence <= sa.sequence
+                  ) * INTERVAL '1 minute' >= :dayStart
+            
+              AND r.start_time +
+                  (
+                    SELECT SUM(rs.duration_offset)
+                    FROM ride_stop rs
+                    WHERE rs.ride_id = r.id
+                      AND rs.sequence <= sa.sequence
+                  ) * INTERVAL '1 minute' < :dayEnd
+            
+              -- pickup must be in future
+              AND r.start_time +
+                  (
+                    SELECT SUM(rs.duration_offset)
+                    FROM ride_stop rs
+                    WHERE rs.ride_id = r.id
+                      AND rs.sequence <= sa.sequence
+                  ) * INTERVAL '1 minute' >= NOW()
             
             GROUP BY
               r.id,
@@ -59,8 +87,9 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
               r.driver_id,
               r.car_id,
               r.start_time,
-              sa.duration_offset;
-            
+              sa.sequence;
             """, nativeQuery = true)
-    List<ListingResponseDto> getAllRideDetails(Long from, Long to, LocalDateTime dayStart, LocalDateTime dayEnd);
+    List<RideDetailResponse> getAllRideDetails(Long from, Long to, LocalDateTime dayStart, LocalDateTime dayEnd);
+
+    Optional<Ride> findByUuid(String rideUuid);
 }
