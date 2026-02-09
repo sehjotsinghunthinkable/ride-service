@@ -5,5 +5,6 @@ public enum Locations {
     GURGAON,
     DELHI,
     JAIPUR,
-    MUMBAI
+    MUMBAI,
+    NOIDA
 }

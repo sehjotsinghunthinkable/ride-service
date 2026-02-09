@@ -8,6 +8,8 @@ import com.rideservice.dto.ride.response.RideResponseDto;
 import com.rideservice.service.RideService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -45,5 +47,11 @@ public class RideController {
                                               @RequestParam Locations source,
                                               @RequestParam Locations destination){
         return rideService.getRideDetails(rideUuid, source, destination);
+    }
+
+    @DeleteMapping("/{rideId}")
+    public ResponseEntity<String> cancelRide(@PathVariable String rideId) {
+        rideService.cancelRide(rideId);
+        return ResponseEntity.ok("Ride with id : " + rideId + " has been successfully deleted");
     }
 }

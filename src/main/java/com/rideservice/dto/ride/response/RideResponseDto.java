@@ -18,4 +18,5 @@ public class RideResponseDto {
     private Long driverId;
     private Long carId;
     private List<StopsResponseDto> stops;
+    private Long totalSeats;
 }
