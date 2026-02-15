@@ -1,0 +1,24 @@
+package com.rideservice.dto.ride.response;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class RideSearchResponse {
+    private String rideUuid;
+    private String fromStop;
+    private String toStop;
+    private LocalDateTime pickupTime;
+    private LocalDateTime dropTime;
+    private Long price;
+    private Integer availableSeats;
+    private Long driverId;
+    private Long carId;
+}

@@ -29,82 +29,27 @@ import static com.rideservice.utils.AuditDetailUtil.addRideStopCreationDetails;
 public class RideMapper {
     private final LocationService locationService;
 
-    public RideResponseDto toRideResponseDto(Ride ride) {
-        RideResponseDto rideResponseDto = new RideResponseDto();
-        rideResponseDto.setUuid(ride.getUuid());
-        rideResponseDto.setStartTime(ride.getStartTime());
-        rideResponseDto.setDriverId(ride.getDriverId());
-        rideResponseDto.setCarId(ride.getCarId());
-        rideResponseDto.setTotalSeats(ride.getTotalSeats());
-
-        // Map stops
-        List<StopsResponseDto> stopsResponse = ride.getRideStops().stream()
-                .sorted(Comparator.comparingLong(RideStop::getSequence))
-                .map(this::toStopResponseDto)
-                .collect(Collectors.toList());
-
-        rideResponseDto.setStops(stopsResponse);
-        return rideResponseDto;
-    }
-
-    private StopsResponseDto toStopResponseDto(RideStop rideStop) {
-        StopsResponseDto stopsResponseDto = new StopsResponseDto();
-        stopsResponseDto.setUuid(rideStop.getUuid());
-        stopsResponseDto.setPrice(rideStop.getPrice());
-        stopsResponseDto.setDurationOffset(rideStop.getDurationOffset());
-        stopsResponseDto.setName(rideStop.getStop().getName());
-        stopsResponseDto.setSequence(rideStop.getSequence());
-        return stopsResponseDto;
-    }
-
-
-    public Ride toRideWithSegmentMapping(RideCreationDto rideCreationDto) {
+    public Ride toRide(RideCreationDto rideCreationDto) {
         // Validate minimum stops
         if (rideCreationDto.getStops() == null || rideCreationDto.getStops().size() < 2) {
             throw new IllegalArgumentException("At least 2 stops are required");
         }
 
-        //1. create ride
+        // 1. Create ride
         Ride ride = new Ride();
         ride.setCarId(rideCreationDto.getCarId());
         ride.setDriverId(rideCreationDto.getDriverId());
         ride.setStartTime(rideCreationDto.getStartTime());
         ride.setTotalSeats(rideCreationDto.getTotalSeats());
         ride.setUuid(UUID.randomUUID().toString());
-        addRideCreationDetails(ride);
 
         // 2. Create stops with cumulative values
         List<RideStop> stops = createStopsWithCumulativeValues(rideCreationDto, ride);
         ride.setRideStops(stops);
 
-        // 3. Create all segment combinations
-        List<RideSegmentSeat> rideSegmentSeats = createAllSegmentSeats(rideCreationDto, ride, stops.size());
-        ride.setSegmentSeats(rideSegmentSeats);
-
-        log.info("Created ride with {} stops and {} segments",
-                stops.size(), rideSegmentSeats.size());
+        log.info("Created ride with {} stops",
+                stops.size());
         return ride;
-    }
-
-    private List<RideSegmentSeat> createAllSegmentSeats(RideCreationDto rideCreationDto,
-                                                        Ride ride, int stopCount) {
-        List<RideSegmentSeat> rideSegmentSeats = new ArrayList<>();
-
-        // Create all combinations (i, j) where i < j
-        for (int i = 0; i < stopCount; i++) {
-            for (int j = i + 1; j < stopCount; j++) {
-                RideSegmentSeat rideSegmentSeat = new RideSegmentSeat();
-                rideSegmentSeat.setAvailableSeats(rideCreationDto.getTotalSeats());
-                rideSegmentSeat.setFromSequence((long) i);  // Start at 0
-                rideSegmentSeat.setToSequence((long) j);    // Start at 0
-                rideSegmentSeat.setUuid(UUID.randomUUID().toString());
-                rideSegmentSeat.setRide(ride);
-                addRideSegmentCreationDetails(rideSegmentSeat);
-                rideSegmentSeats.add(rideSegmentSeat);
-            }
-        }
-        log.debug("Created {} segment seats for {} stops", rideSegmentSeats.size(), stopCount);
-        return rideSegmentSeats;
     }
 
     private List<RideStop> createStopsWithCumulativeValues(RideCreationDto rideCreationDto, Ride ride) {
@@ -118,28 +63,15 @@ public class RideMapper {
             StopsDto stopsDto = stopsDtos.get(i);
 
             if (i == 0) {
-                // First stop must have durationOffset = 0 and price = 0
+                // First stop validation
                 if (stopsDto.getDurationOffset() != 0) {
                     throw new IllegalArgumentException("First stop must have durationOffset = 0");
                 }
                 if (stopsDto.getPrice() != 0) {
                     throw new IllegalArgumentException("First stop must have price = 0");
                 }
-            }
-
-            Location location = locationService.getLocation(stopsDto.getName().toString());
-
-            // Create stop
-            RideStop rideStop = new RideStop();
-            rideStop.setStop(location);
-            rideStop.setSequence((long) i);  // Start at 0
-
-            // Set cumulative values
-            if (i == 0) {
-                rideStop.setDurationOffset(0L);
-                rideStop.setPrice(0L);
             } else {
-                // Validate positive values
+                // Validate positive values for non-first stops
                 if (stopsDto.getDurationOffset() <= 0) {
                     throw new IllegalArgumentException(
                             "Duration offset must be positive for stop: " + stopsDto.getName());
@@ -148,8 +80,22 @@ public class RideMapper {
                     throw new IllegalArgumentException(
                             "Price must be positive for stop: " + stopsDto.getName());
                 }
-                cumulativeDuration += stopsDto.getDurationOffset();  // duration from prev
-                cumulativePrice += stopsDto.getPrice();              // price from prev
+            }
+
+            Location location = locationService.getLocation(stopsDto.getName().toString());
+
+            // Create stop
+            RideStop rideStop = new RideStop();
+            rideStop.setStop(location);
+            rideStop.setSequence((long) i);
+
+            // Set cumulative values
+            if (i == 0) {
+                rideStop.setDurationOffset(0L);
+                rideStop.setPrice(0L);
+            } else {
+                cumulativeDuration += stopsDto.getDurationOffset();
+                cumulativePrice += stopsDto.getPrice();
 
                 rideStop.setDurationOffset(cumulativeDuration);
                 rideStop.setPrice(cumulativePrice);
@@ -158,8 +104,46 @@ public class RideMapper {
             rideStop.setRide(ride);
             rideStop.setUuid(UUID.randomUUID().toString());
             rideStops.add(rideStop);
-            addRideStopCreationDetails(rideStop);
         }
+
+        // Validate that stops are in chronological order
+        validateStopsOrder(rideStops);
+
         return rideStops;
+    }
+
+    private void validateStopsOrder(List<RideStop> stops) {
+        for (int i = 1; i < stops.size(); i++) {
+            RideStop prev = stops.get(i-1);
+            RideStop current = stops.get(i);
+
+            if (prev.getDurationOffset() >= current.getDurationOffset()) {
+                throw new IllegalArgumentException(
+                        String.format("Stops must be in chronological order. Stop %d (offset=%d) must come before stop %d (offset=%d)",
+                                i-1, prev.getDurationOffset(), i, current.getDurationOffset()));
+            }
+
+            if (prev.getPrice() >= current.getPrice()) {
+                throw new IllegalArgumentException(
+                        String.format("Prices must increase along the route. Stop %d (price=%d) to stop %d (price=%d)",
+                                i-1, prev.getPrice(), i, current.getPrice()));
+            }
+        }
+    }
+
+    public RideResponseDto toRideResponseDto(Ride ride) {
+        if (ride == null) return null;
+
+        RideResponseDto dto = new RideResponseDto();
+        dto.setRideUuid(ride.getUuid());
+        dto.setDriverId(ride.getDriverId());
+        dto.setCarId(ride.getCarId());
+        dto.setStartTime(ride.getStartTime());
+        dto.setTotalSeats(ride.getTotalSeats());
+        if (ride.getRideStops() != null) {
+            dto.setStopCount(ride.getRideStops().size());
+        }
+
+        return dto;
     }
 }

@@ -13,10 +13,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RideResponseDto {
-    private String uuid;
-    private LocalDateTime startTime;
+    private String rideUuid;
     private Long driverId;
     private Long carId;
-    private List<StopsResponseDto> stops;
-    private Long totalSeats;
+    private LocalDateTime startTime;
+    private Integer totalSeats;
+    private Integer stopCount;  // number of stops
 }

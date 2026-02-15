@@ -76,11 +76,11 @@
 		</dependency>
 
 		<!-- Redisson for Distributed Locks -->
-		<dependency>
-			<groupId>org.redisson</groupId>
-			<artifactId>redisson-spring-boot-starter</artifactId>
-			<version>3.27.0</version>
-		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>org.redisson</groupId>-->
+<!--			<artifactId>redisson-spring-boot-starter</artifactId>-->
+<!--			<version>3.27.0</version>-->
+<!--		</dependency>-->
 
 		<!-- For Java 8 Time support -->
 		<dependency>

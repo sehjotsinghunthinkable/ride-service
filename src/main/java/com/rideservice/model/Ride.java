@@ -34,9 +34,7 @@ public class Ride extends BaseEntity {
 
     private LocalDateTime startTime;
 
-//    private LocalDateTime endTime;
-
-    private Long totalSeats;
+    private Integer totalSeats;
 
     private Long driverId;
 
@@ -44,7 +42,4 @@ public class Ride extends BaseEntity {
 
     @OneToMany(mappedBy = "ride",cascade = CascadeType.PERSIST)
     private List<RideStop> rideStops;
-
-    @OneToMany(mappedBy = "ride",cascade = CascadeType.PERSIST)
-    private List<RideSegmentSeat> segmentSeats;
 }

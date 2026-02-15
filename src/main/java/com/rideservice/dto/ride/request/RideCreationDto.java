@@ -14,7 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 public class RideCreationDto {
     private LocalDateTime startTime;
-    private Long totalSeats;
+    private Integer totalSeats;
     private Long driverId;
     private Long carId;
     private List<StopsDto> stops;

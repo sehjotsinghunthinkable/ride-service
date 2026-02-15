@@ -1,6 +1,7 @@
 package com.rideservice.repository;
 
 import com.rideservice.dto.ride.response.RideDetailResponse;
+import com.rideservice.dto.ride.response.RideSearchProjection;
 import com.rideservice.model.Ride;
 import com.rideservice.model.RideSegmentSeat;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -83,8 +84,71 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
             "WHERE r.uuid = :uuid AND r.isDeleted = false")
     Optional<Ride> findByUuidWithStops(@Param("uuid") String uuid);
 
-    @Query("SELECT ss FROM RideSegmentSeat ss " +
-            "WHERE ss.ride.uuid = :rideUuid " +
-            "AND ss.isDeleted = false")
-    List<RideSegmentSeat> findSegmentSeatsByRideUuid(@Param("rideUuid") String rideUuid);
+
+    @Query(value = """
+        WITH ride_candidates AS (
+            SELECT DISTINCT
+                r.uuid as rideUuid,
+                :fromLocationName as fromStop,
+                :toLocationName as toStop,
+                r.start_time + (src.duration_offset * INTERVAL '1 minute') as pickupTime,
+                r.start_time + (dest.duration_offset * INTERVAL '1 minute') as dropTime,
+                (dest.price - src.price) as price,
+                r.driver_id as driverId,
+                r.car_id as carId,
+                r.id as rideId,
+                r.total_seats as totalSeats,
+                src.sequence as fromSequence,
+                dest.sequence as toSequence
+            FROM ride r
+            JOIN ride_stop src ON r.id = src.ride_id
+                AND src.stop_id = :fromLocationId
+                AND src.is_deleted = false
+            JOIN ride_stop dest ON r.id = dest.ride_id
+                AND dest.stop_id = :toLocationId
+                AND dest.is_deleted = false
+                AND dest.sequence > src.sequence
+            WHERE r.is_deleted = false
+                AND r.start_time >= :dayStart
+                AND r.start_time < :dayEnd
+                AND (r.start_time + (src.duration_offset * INTERVAL '1 minute')) >= NOW()
+        )
+        SELECT 
+            rc.rideUuid as rideUuid,
+            rc.fromStop as fromStop,
+            rc.toStop as toStop,
+            rc.pickupTime as pickupTime,
+            rc.dropTime as dropTime,
+            rc.price as price,
+            (rc.totalSeats - COALESCE((
+                SELECT SUM(b.seats_booked)
+                FROM ride_bookings b
+                WHERE b.ride_id = rc.rideId
+                    AND b.status IN ('RESERVED', 'CONFIRMED')
+                    AND b.from_sequence < rc.toSequence
+                    AND b.to_sequence > rc.fromSequence
+            ), 0)) as availableSeats,
+            rc.driverId as driverId,
+            rc.carId as carId
+        FROM ride_candidates rc
+        WHERE (rc.totalSeats - COALESCE((
+                SELECT SUM(b.seats_booked)
+                FROM ride_bookings b
+                WHERE b.ride_id = rc.rideId
+                    AND b.status IN ('RESERVED', 'CONFIRMED')
+                    AND b.from_sequence < rc.toSequence
+                    AND b.to_sequence > rc.fromSequence
+            ), 0)) > 0
+        ORDER BY rc.pickupTime
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<RideSearchProjection> searchAvailableRides(
+            @Param("fromLocationId") Long fromLocationId,
+            @Param("fromLocationName") String fromLocationName,
+            @Param("toLocationId") Long toLocationId,
+            @Param("toLocationName") String toLocationName,
+            @Param("dayStart") LocalDateTime dayStart,
+            @Param("dayEnd") LocalDateTime dayEnd,
+            @Param("limit") Integer limit);
+
 }
