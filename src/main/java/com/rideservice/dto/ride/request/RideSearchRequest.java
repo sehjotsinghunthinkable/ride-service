@@ -1,20 +1,21 @@
 package com.rideservice.dto.ride.request;
 
+import com.rideservice.constants.enums.Locations;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class RideSearchRequest {
-    private String fromStop;
-    private String toStop;
-    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-    private LocalDateTime departureDate;
+    private Locations fromStop;
+    private Locations toStop;
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    private LocalDate departureDate;
 }

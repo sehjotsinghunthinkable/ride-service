@@ -18,6 +18,9 @@ import com.rideservice.repository.RideBookingRepository;
 import com.rideservice.repository.RideRepository;
 import com.rideservice.service.RideBookingService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+
+import static com.rideservice.utils.AuditDetailUtil.addRideBookingCreationDetails;
 
 @Service
 @Slf4j
@@ -41,6 +46,13 @@ public class RideBookingServiceImpl implements RideBookingService {
         this.rideSearchMapper = rideSearchMapper;
         this.rideBookingRepository = rideBookingRepository;
     }
+
+    private static final String SEARCH_RESULTS_CACHE = "searchResults";
+    private static final String RIDE_DETAILS_CACHE = "rideDetails";
+
+    @Cacheable(value = SEARCH_RESULTS_CACHE,
+            key = "#request.fromStop + ':' + #request.toStop + ':' + #request.departureDate",
+            unless = "#result.isEmpty()")
     @Transactional(readOnly = true)
     public List<RideSearchResponse> searchRides(RideSearchRequest request) {
 
@@ -48,16 +60,16 @@ public class RideBookingServiceImpl implements RideBookingService {
         validateSearchRequest(request);
 
         // 2. Get location entities
-        Location fromLocation = locationRepository.findByName(request.getFromStop())
+        Location fromLocation = locationRepository.findByName(request.getFromStop().toString().toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException(
                         String.format("Source location '%s' not found", request.getFromStop())));
 
-        Location toLocation = locationRepository.findByName(request.getToStop())
+        Location toLocation = locationRepository.findByName(request.getToStop().toString().toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException(
                         String.format("Destination location '%s' not found", request.getToStop())));
 
         // 3. Prepare date range for the entire day
-        LocalDateTime dayStart = request.getDepartureDate().toLocalDate().atStartOfDay();
+        LocalDateTime dayStart = request.getDepartureDate().atStartOfDay();
         LocalDateTime dayEnd = dayStart.plusDays(1);
 
         log.info("Searching rides: from='{}'({}), to='{}'({}), date={}, range=[{} to {}]",
@@ -68,9 +80,9 @@ public class RideBookingServiceImpl implements RideBookingService {
         // 4. Execute search with projection
         List<RideSearchProjection> projections = rideRepository.searchAvailableRides(
                 fromLocation.getId(),
-                request.getFromStop(),
+                request.getFromStop().toString(),
                 toLocation.getId(),
-                request.getToStop(),
+                request.getToStop().toString(),
                 dayStart,
                 dayEnd,
                 100  // limit
@@ -89,11 +101,11 @@ public class RideBookingServiceImpl implements RideBookingService {
             throw new IllegalArgumentException("Search request cannot be null");
         }
 
-        if (request.getFromStop() == null || request.getFromStop().trim().isEmpty()) {
+        if (request.getFromStop() == null) {
             throw new IllegalArgumentException("Source location is required");
         }
 
-        if (request.getToStop() == null || request.getToStop().trim().isEmpty()) {
+        if (request.getToStop() == null) {
             throw new IllegalArgumentException("Destination location is required");
         }
 
@@ -105,13 +117,20 @@ public class RideBookingServiceImpl implements RideBookingService {
             throw new IllegalArgumentException("Departure date is required");
         }
 
-        if (request.getDepartureDate().toLocalDate().isBefore(LocalDateTime.now().toLocalDate())) {
+        if (request.getDepartureDate().isBefore(LocalDateTime.now().toLocalDate())) {
             throw new IllegalArgumentException("Departure date cannot be in the past");
         }
     }
 
     @Override
     @Transactional(isolation = Isolation.REPEATABLE_READ)
+    @CacheEvict(
+            value = {
+                    SEARCH_RESULTS_CACHE,
+                    RIDE_DETAILS_CACHE
+            },
+            allEntries = true
+    )
     public ReservationResponse reserveSeats(String rideUuid, ReserveSeatsRequest request) {
         log.info("Reserving {} seats for ride {} from {} to {} for user {}",
                 request.getSeats(), rideUuid, request.getFromStop(),
@@ -122,10 +141,10 @@ public class RideBookingServiceImpl implements RideBookingService {
                 .orElseThrow(() -> new IllegalArgumentException("Ride not found: " + rideUuid));
 
         // 2. Get stop sequences
-        Location fromLocation = locationRepository.findByName(request.getFromStop())
+        Location fromLocation = locationRepository.findByName(request.getFromStop().toString().toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("Source stop not found: " + request.getFromStop()));
 
-        Location toLocation = locationRepository.findByName(request.getToStop())
+        Location toLocation = locationRepository.findByName(request.getToStop().toString().toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("Destination stop not found: " + request.getToStop()));
 
         RideStop fromStop = ride.getRideStops().stream()
@@ -163,7 +182,7 @@ public class RideBookingServiceImpl implements RideBookingService {
         booking.setSeatsBooked(request.getSeats());
         booking.setStatus(BookingStatus.RESERVED);
         booking.setExpiresAt(LocalDateTime.now().plusMinutes(request.getExpiryMinutes()));
-
+        addRideBookingCreationDetails(booking);
         RideBooking savedBooking = rideBookingRepository.save(booking);
         log.info("Reservation created with ID: {}, expires at: {}",
                 savedBooking.getBookingUuid(), savedBooking.getExpiresAt());
@@ -172,8 +191,8 @@ public class RideBookingServiceImpl implements RideBookingService {
         return ReservationResponse.builder()
                 .reservationId(savedBooking.getBookingUuid())
                 .rideUuid(ride.getUuid())
-                .fromStop(request.getFromStop())
-                .toStop(request.getToStop())
+                .fromStop(request.getFromStop().toString())
+                .toStop(request.getToStop().toString())
                 .seatsReserved(savedBooking.getSeatsBooked())
                 .expiresAt(savedBooking.getExpiresAt())
                 .status(savedBooking.getStatus().name())
@@ -185,6 +204,13 @@ public class RideBookingServiceImpl implements RideBookingService {
 
     @Override
     @Transactional
+    @CacheEvict(
+            value = {
+                    SEARCH_RESULTS_CACHE,
+                    RIDE_DETAILS_CACHE
+            },
+            allEntries = true
+    )
     public ConfirmationResponse confirmReservation(String reservationId) {
         log.info("Confirming reservation: {}", reservationId);
 
@@ -222,6 +248,13 @@ public class RideBookingServiceImpl implements RideBookingService {
 
     @Override
     @Transactional
+    @CacheEvict(
+            value = {
+                    SEARCH_RESULTS_CACHE,
+                    RIDE_DETAILS_CACHE
+            },
+            allEntries = true
+    )
     public ReleaseResponse releaseReservation(String reservationId, String reason) {
         log.info("Releasing reservation: {}, reason: {}", reservationId, reason);
 
@@ -249,6 +282,13 @@ public class RideBookingServiceImpl implements RideBookingService {
 
     @Override
     @Transactional
+    @CacheEvict(
+            value = {
+                    SEARCH_RESULTS_CACHE,
+                    RIDE_DETAILS_CACHE
+            },
+            allEntries = true
+    )
     public ReleaseResponse expireReservation(String reservationId) {
         log.info("Expiring reservation: {}", reservationId);
 
@@ -276,8 +316,13 @@ public class RideBookingServiceImpl implements RideBookingService {
         Ride ride = booking.getRide();
 
         // Get stop names
-        String fromStopName = getStopNameBySequence(ride, booking.getFromSequence());
-        String toStopName = getStopNameBySequence(ride, booking.getToSequence());
+        RideStop fromStop = getRideStopBySequence(ride, booking.getFromSequence());
+        RideStop toStop = getRideStopBySequence(ride, booking.getToSequence());
+        String fromStopName = fromStop.getStop().getName();
+        String toStopName = toStop.getStop().getName();
+        LocalDateTime pickupTime = ride.getStartTime().plusMinutes(fromStop.getDurationOffset());
+        LocalDateTime dropTime = ride.getStartTime().plusMinutes(toStop.getDurationOffset());
+        Long price = toStop.getPrice() - fromStop.getPrice();
 
         return ReservationResponse.builder()
                 .reservationId(booking.getBookingUuid())
@@ -287,6 +332,9 @@ public class RideBookingServiceImpl implements RideBookingService {
                 .seatsReserved(booking.getSeatsBooked())
                 .expiresAt(booking.getExpiresAt())
                 .status(booking.getStatus().name())
+                .dropTime(dropTime)
+                .pickupTime(pickupTime)
+                .price(price)
                 .build();
     }
 
@@ -302,11 +350,10 @@ public class RideBookingServiceImpl implements RideBookingService {
         return toStop.getPrice() - fromStop.getPrice();
     }
 
-    private String getStopNameBySequence(Ride ride, Long sequence) {
+    private RideStop getRideStopBySequence(Ride ride, Long sequence) {
         return ride.getRideStops().stream()
                 .filter(rs -> rs.getSequence().equals(sequence))
                 .findFirst()
-                .map(rs -> rs.getStop().getName())
-                .orElse("Unknown");
+                .orElse(null);
     }
 }

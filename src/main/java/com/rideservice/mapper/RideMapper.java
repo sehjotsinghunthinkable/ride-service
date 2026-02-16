@@ -20,7 +20,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static com.rideservice.utils.AuditDetailUtil.addRideCreationDetails;
-import static com.rideservice.utils.AuditDetailUtil.addRideSegmentCreationDetails;
 import static com.rideservice.utils.AuditDetailUtil.addRideStopCreationDetails;
 
 @Component
@@ -42,6 +41,7 @@ public class RideMapper {
         ride.setStartTime(rideCreationDto.getStartTime());
         ride.setTotalSeats(rideCreationDto.getTotalSeats());
         ride.setUuid(UUID.randomUUID().toString());
+        addRideCreationDetails(ride);
 
         // 2. Create stops with cumulative values
         List<RideStop> stops = createStopsWithCumulativeValues(rideCreationDto, ride);
@@ -102,6 +102,7 @@ public class RideMapper {
             }
 
             rideStop.setRide(ride);
+            addRideStopCreationDetails(rideStop);
             rideStop.setUuid(UUID.randomUUID().toString());
             rideStops.add(rideStop);
         }

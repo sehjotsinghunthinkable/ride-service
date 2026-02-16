@@ -1,5 +1,6 @@
 package com.rideservice.dto.ride.request;
 
+import com.rideservice.constants.enums.Locations;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -18,10 +19,10 @@ public class ReserveSeatsRequest {
     private String userId;  // From Booking Service
 
     @NotBlank(message = "From stop is required")
-    private String fromStop;
+    private Locations fromStop;
 
     @NotBlank(message = "To stop is required")
-    private String toStop;
+    private Locations toStop;
 
     @NotNull(message = "Number of seats is required")
     @Min(value = 1, message = "At least 1 seat must be booked")

@@ -1,5 +1,6 @@
 package com.rideservice.controller;
 
+import com.rideservice.constants.enums.Locations;
 import com.rideservice.dto.ride.request.ReserveSeatsRequest;
 import com.rideservice.dto.ride.request.RideCreationDto;
 import com.rideservice.dto.ride.request.RideSearchRequest;
@@ -7,6 +8,7 @@ import com.rideservice.dto.ride.response.ConfirmationResponse;
 import com.rideservice.dto.ride.response.ReleaseResponse;
 import com.rideservice.dto.ride.response.ReservationResponse;
 import com.rideservice.dto.ride.response.RideResponseDto;
+import com.rideservice.dto.ride.response.RideSearchProjection;
 import com.rideservice.dto.ride.response.RideSearchResponse;
 import com.rideservice.service.RideBookingService;
 import com.rideservice.service.RideService;
@@ -27,7 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -45,6 +47,15 @@ public class RideController {
         return rideService.saveRideDetails(rideCreationDto);
     }
 
+    @GetMapping("/{rideUuid}")
+    public RideSearchProjection fetchRideDetails(
+            @PathVariable String rideUuid,
+            @RequestParam Locations from,
+            @RequestParam Locations to
+    ){
+        return rideService.fetchRideDetails(rideUuid, from, to);
+    }
+
     @GetMapping("/search")
     @Operation(summary = "Search for available rides",
             description = "Find rides between two stops on a specific date")
@@ -54,16 +65,13 @@ public class RideController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     public ResponseEntity<List<RideSearchResponse>> searchRides(
-            @Parameter(description = "Source stop name", example = "delhi", required = true)
-            @RequestParam String from,
-
-            @Parameter(description = "Destination stop name", example = "gurgaon", required = true)
-            @RequestParam String to,
+            @RequestParam Locations from,
+            @RequestParam Locations to,
 
             @Parameter(description = "Departure date and time",
                     example = "2024-01-15T10:00:00", required = true)
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            LocalDateTime departureDate) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate departureDate) {
 
         log.info("Received search request: from={}, to={}, date={}", from, to, departureDate);
 
