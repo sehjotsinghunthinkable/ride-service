@@ -7,6 +7,7 @@ import com.rideservice.dto.ride.response.ReleaseResponse;
 import com.rideservice.dto.ride.response.ReservationResponse;
 import com.rideservice.dto.ride.response.RideSearchProjection;
 import com.rideservice.dto.ride.response.RideSearchResponse;
+import com.rideservice.exception.SeatUnavailableException;
 import com.rideservice.mapper.RideSearchMapper;
 import com.rideservice.model.BookingStatus;
 import com.rideservice.model.Location;
@@ -29,6 +30,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import static com.rideservice.constants.enums.ApplicationConstants.RIDE_DETAILS_CACHE;
+import static com.rideservice.constants.enums.ApplicationConstants.SEARCH_RESULTS_CACHE;
 import static com.rideservice.utils.AuditDetailUtil.addRideBookingCreationDetails;
 
 @Service
@@ -46,9 +49,6 @@ public class RideBookingServiceImpl implements RideBookingService {
         this.rideSearchMapper = rideSearchMapper;
         this.rideBookingRepository = rideBookingRepository;
     }
-
-    private static final String SEARCH_RESULTS_CACHE = "searchResults";
-    private static final String RIDE_DETAILS_CACHE = "rideDetails";
 
     @Cacheable(value = SEARCH_RESULTS_CACHE,
             key = "#request.fromStop + ':' + #request.toStop + ':' + #request.departureDate",
@@ -167,9 +167,10 @@ public class RideBookingServiceImpl implements RideBookingService {
                 rideUuid, bookedSeats, availableSeats, request.getFromStop(), request.getToStop());
 
         if (availableSeats < request.getSeats()) {
-            throw new IllegalStateException(
+            throw new SeatUnavailableException(
                     String.format("Only %d seats available, but %d requested",
-                            availableSeats, request.getSeats()));
+                            availableSeats, request.getSeats())
+            );
         }
 
         // 4. Create reservation

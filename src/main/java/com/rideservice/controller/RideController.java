@@ -43,7 +43,7 @@ public class RideController {
     @PostMapping("/create")
     @Operation(summary = "Create new ride",
             description = "Create a new ride, defining seats, locations and timings ")
-    public RideResponseDto saveRideDetails(@RequestBody RideCreationDto rideCreationDto){
+    public RideResponseDto saveRideDetails(@Valid @RequestBody RideCreationDto rideCreationDto){
         return rideService.saveRideDetails(rideCreationDto);
     }
 

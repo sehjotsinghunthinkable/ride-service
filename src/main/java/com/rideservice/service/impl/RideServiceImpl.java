@@ -13,22 +13,30 @@ import com.rideservice.repository.RideRepository;
 import com.rideservice.service.RideService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import static com.rideservice.constants.enums.ApplicationConstants.RIDE_DETAILS_CACHE;
+import static com.rideservice.constants.enums.ApplicationConstants.SEARCH_RESULTS_CACHE;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class RideServiceImpl implements RideService {
-    private static final String RIDE_DETAILS_CACHE = "rideDetails";
+
 
     private final RideRepository rideRepository;
     private final RideMapper rideMapper;
 
+    @CacheEvict(
+            value = {
+                    SEARCH_RESULTS_CACHE,
+                    RIDE_DETAILS_CACHE
+            },
+            allEntries = true
+    )
     @Transactional
     public RideResponseDto saveRideDetails(RideCreationDto rideCreationDto) {
         log.info("Creating new ride with {} stops",
