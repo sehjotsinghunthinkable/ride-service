@@ -18,10 +18,10 @@ public class ReserveSeatsRequest {
     @NotBlank(message = "User ID is required")
     private String userId;  // From Booking Service
 
-    @NotBlank(message = "From stop is required")
+//    @NotBlank(message = "From stop is required")
     private Locations fromStop;
 
-    @NotBlank(message = "To stop is required")
+//    @NotBlank(message = "To stop is required")
     private Locations toStop;
 
     @NotNull(message = "Number of seats is required")
