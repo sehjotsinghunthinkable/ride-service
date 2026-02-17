@@ -4,12 +4,15 @@ import com.rideservice.constants.enums.Locations;
 import com.rideservice.dto.ride.request.ReserveSeatsRequest;
 import com.rideservice.dto.ride.request.RideCreationDto;
 import com.rideservice.dto.ride.request.RideSearchRequest;
+import com.rideservice.dto.ride.request.RideUpdateRequest;
 import com.rideservice.dto.ride.response.ConfirmationResponse;
 import com.rideservice.dto.ride.response.ReleaseResponse;
 import com.rideservice.dto.ride.response.ReservationResponse;
+import com.rideservice.dto.ride.response.RideDeleteResponse;
 import com.rideservice.dto.ride.response.RideResponseDto;
 import com.rideservice.dto.ride.response.RideSearchProjection;
 import com.rideservice.dto.ride.response.RideSearchResponse;
+import com.rideservice.dto.ride.response.RideUpdateResponse;
 import com.rideservice.service.RideBookingService;
 import com.rideservice.service.RideService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,10 +23,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -48,6 +54,7 @@ public class RideController {
     }
 
     @GetMapping("/{rideUuid}")
+    @Operation(summary = "Fetch ride details based on uuid, pickup and drop off locations ")
     public RideSearchProjection fetchRideDetails(
             @PathVariable String rideUuid,
             @RequestParam Locations from,
@@ -113,7 +120,6 @@ public class RideController {
             @PathVariable String reservationId) {
 
         log.info("POST /reservations/{}/confirm", reservationId);
-
         ConfirmationResponse response = rideBookingService.confirmReservation(reservationId);
         return ResponseEntity.ok(response);
     }
@@ -139,8 +145,34 @@ public class RideController {
             @PathVariable String reservationId) {
 
         log.info("GET /reservations/{}", reservationId);
-
         ReservationResponse response = rideBookingService.getReservationStatus(reservationId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{rideUuid}")
+    @Operation(summary = "Update ride details ")
+    public ResponseEntity<RideUpdateResponse> updateRide(
+            @Parameter(description = "Ride UUID", required = true)
+            @PathVariable String rideUuid,
+            @Valid @RequestBody RideUpdateRequest request) {
+
+        RideUpdateResponse response = rideService.updateRide(rideUuid, request);
+        if (response.getActiveBookingCount() > 0) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{rideUuid}")
+    @Operation(summary = "Delete ride ")
+    public ResponseEntity<RideDeleteResponse> deleteRide(
+            @Parameter(description = "Ride UUID", required = true)
+            @PathVariable String rideUuid) {
+
+        RideDeleteResponse response = rideService.deleteRide(rideUuid);
+        if (!response.isDeleted()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+        }
         return ResponseEntity.ok(response);
     }
 }

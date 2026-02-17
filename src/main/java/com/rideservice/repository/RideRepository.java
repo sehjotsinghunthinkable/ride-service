@@ -78,6 +78,18 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
 
     Optional<Ride> findByUuid(String rideUuid);
 
+    // Check if ride has any bookings (RESERVED or CONFIRMED)
+    @Query("SELECT COUNT(b) > 0 FROM RideBooking b " +
+            "WHERE b.ride.uuid = :rideUuid " +
+            "AND b.status IN ('RESERVED', 'CONFIRMED')")
+    boolean hasActiveBookings(@Param("rideUuid") String rideUuid);
+
+    // Get booking count for a ride
+    @Query("SELECT COUNT(b) FROM RideBooking b " +
+            "WHERE b.ride.uuid = :rideUuid " +
+            "AND b.status IN ('RESERVED', 'CONFIRMED')")
+    int getActiveBookingCount(@Param("rideUuid") String rideUuid);
+
     @Query("SELECT DISTINCT r FROM Ride r " +
             "LEFT JOIN FETCH r.rideStops rs " +
             "LEFT JOIN FETCH rs.stop " +

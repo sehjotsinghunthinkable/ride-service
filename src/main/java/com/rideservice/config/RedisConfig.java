@@ -41,7 +41,7 @@ public class RedisConfig {
     }
 
     /**
-     * FOR SIMPLE VALUES (Strings, Integers) - StringRedisTemplate
+     * FOR SIMPLE VALUES - StringRedisTemplate
      */
     @Bean
     @Primary
@@ -96,18 +96,4 @@ public class RedisConfig {
                 .withInitialCacheConfigurations(cacheConfigurations)
                 .build();
     }
-
-    /**
-     * Redisson for distributed locks
-     */
-//    @Bean
-//    public RedissonClient redissonClient() {
-//        Config config = new Config();
-//        config.useSingleServer()
-//                .setAddress("redis://" + redisHost + ":" + redisPort)
-//                .setPassword(redisPassword)
-//                .setConnectionPoolSize(10)
-//                .setConnectionMinimumIdleSize(5);
-//        return Redisson.create(config);
-//    }
 }
