@@ -6,6 +6,8 @@ import com.rideservice.service.LocationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class LocationServiceImpl implements LocationService {
@@ -18,6 +20,7 @@ public class LocationServiceImpl implements LocationService {
                 .orElseGet(() -> {
                     Location location = new Location();
                     location.setName(key);
+                    location.setCreatedAt(LocalDateTime.now());
                     return locationRepository.save(location);
                 });
     }

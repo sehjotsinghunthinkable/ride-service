@@ -20,8 +20,6 @@ public interface RideBookingRepository extends JpaRepository<RideBooking, Long> 
     // Find by UUID (for confirmation/cancellation)
     Optional<RideBooking> findByBookingUuid(String bookingUuid);
 
-    List<RideBooking> findByRideIdAndStatusIn(Long rideId, List<BookingStatus> statuses);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM RideBooking b WHERE b.ride.id = :rideId AND b.status IN :statuses")
     List<RideBooking> findLockedByRideIdAndStatusIn(

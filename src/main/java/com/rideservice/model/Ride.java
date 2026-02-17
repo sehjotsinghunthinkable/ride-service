@@ -40,6 +40,11 @@ public class Ride extends BaseEntity {
 
     private Long carId;
 
-    @OneToMany(mappedBy = "ride",cascade = CascadeType.PERSIST)
+    @OneToMany(mappedBy = "ride", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RideStop> rideStops;
+
+    public void addRideStop(RideStop rideStop) {
+        rideStops.add(rideStop);
+        rideStop.setRide(this);
+    }
 }

@@ -17,7 +17,7 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .addServersItem(new Server().url("/"))
                 .info(new Info()
-                        .title("Project")
+                        .title("Ride Service")
                         .version("1.0")
                         .description("API documentation "))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
