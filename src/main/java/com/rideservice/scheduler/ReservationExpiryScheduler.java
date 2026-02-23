@@ -1,8 +1,8 @@
 package com.rideservice.scheduler;
 
 import com.rideservice.model.BookingStatus;
-import com.rideservice.model.RideBooking;
-import com.rideservice.repository.RideBookingRepository;
+import com.rideservice.model.RideReservation;
+import com.rideservice.repository.RideReservationRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class ReservationExpiryScheduler {
-    private final RideBookingRepository rideBookingRepository;
+    private final RideReservationRepository rideReservationRepository;
 
     /**
      * Runs every minute to expire reservations that have passed their expiry time
@@ -29,7 +29,7 @@ public class ReservationExpiryScheduler {
         LocalDateTime now = LocalDateTime.now();
 
         // Find all expired reservations
-        List<RideBooking> expiredReservations = rideBookingRepository
+        List<RideReservation> expiredReservations = rideReservationRepository
                 .findAndLockExpiredReservations(now);
 
         if (expiredReservations.isEmpty()) {
@@ -42,7 +42,7 @@ public class ReservationExpiryScheduler {
         int expiredCount = 0;
         int failedCount = 0;
 
-        for (RideBooking booking : expiredReservations) {
+        for (RideReservation booking : expiredReservations) {
             try {
                 // Double-check expiry-- avoid race conditions
                 if (booking.getExpiresAt().isBefore(now) &&
@@ -51,7 +51,7 @@ public class ReservationExpiryScheduler {
                     booking.setStatus(BookingStatus.EXPIRED);
                     booking.setCancellationReason("Auto-expired at " + now);
 
-                    rideBookingRepository.save(booking);
+                    rideReservationRepository.save(booking);
                     expiredCount++;
 
                     log.info("Expired reservation: {} for ride {} (expired at {})",
@@ -79,7 +79,7 @@ public class ReservationExpiryScheduler {
         LocalDateTime cutoffDate = LocalDateTime.now().minusDays(30); // 30 days old
 
         // delete or mark as archived
-        int deletedCount = rideBookingRepository.bulkExpireReservations(cutoffDate);
+        int deletedCount = rideReservationRepository.bulkExpireReservations(cutoffDate);
 
         log.info("Cleanup job completed: {} old expired reservations processed", deletedCount);
     }

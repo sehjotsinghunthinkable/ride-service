@@ -13,7 +13,7 @@ import com.rideservice.dto.ride.response.RideResponseDto;
 import com.rideservice.dto.ride.response.RideSearchProjection;
 import com.rideservice.dto.ride.response.RideSearchResponse;
 import com.rideservice.dto.ride.response.RideUpdateResponse;
-import com.rideservice.service.RideBookingService;
+import com.rideservice.service.RideReservationService;
 import com.rideservice.service.RideService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -44,7 +44,7 @@ import java.util.List;
 @Slf4j
 public class RideController {
     private final RideService rideService;
-    private final RideBookingService rideBookingService;
+    private final RideReservationService rideReservationService;
 
     @PostMapping("/create")
     @Operation(summary = "Create new ride",
@@ -88,7 +88,7 @@ public class RideController {
                 .departureDate(departureDate)
                 .build();
 
-        List<RideSearchResponse> rides = rideBookingService.searchRides(request);
+        List<RideSearchResponse> rides = rideReservationService.searchRides(request);
         log.info("Returning {} rides for search request", rides.size());
         return ResponseEntity.ok(rides);
     }
@@ -109,7 +109,7 @@ public class RideController {
         log.info("POST /rides/{}/reserve - {} seats from {} to {}",
                 rideUuid, request.getSeats(), request.getFromStop(), request.getToStop());
 
-        ReservationResponse response = rideBookingService.reserveSeats(rideUuid, request);
+        ReservationResponse response = rideReservationService.reserveSeats(rideUuid, request);
         return ResponseEntity.ok(response);
     }
 
@@ -120,7 +120,7 @@ public class RideController {
             @PathVariable String reservationId) {
 
         log.info("POST /reservations/{}/confirm", reservationId);
-        ConfirmationResponse response = rideBookingService.confirmReservation(reservationId);
+        ConfirmationResponse response = rideReservationService.confirmReservation(reservationId);
         return ResponseEntity.ok(response);
     }
 
@@ -134,7 +134,7 @@ public class RideController {
 
         log.info("POST /reservations/{}/release - reason: {}", reservationId, reason);
 
-        ReleaseResponse response = rideBookingService.releaseReservation(reservationId, reason);
+        ReleaseResponse response = rideReservationService.releaseReservation(reservationId, reason);
         return ResponseEntity.ok(response);
     }
 
@@ -145,7 +145,7 @@ public class RideController {
             @PathVariable String reservationId) {
 
         log.info("GET /reservations/{}", reservationId);
-        ReservationResponse response = rideBookingService.getReservationStatus(reservationId);
+        ReservationResponse response = rideReservationService.getReservationStatus(reservationId);
         return ResponseEntity.ok(response);
     }
 

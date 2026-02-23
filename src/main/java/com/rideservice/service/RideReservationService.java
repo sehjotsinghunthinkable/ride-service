@@ -9,7 +9,7 @@ import com.rideservice.dto.ride.response.RideSearchResponse;
 
 import java.util.List;
 
-public interface RideBookingService {
+public interface RideReservationService {
     List<RideSearchResponse> searchRides(RideSearchRequest request);
     ReservationResponse reserveSeats(String rideUuid, ReserveSeatsRequest request);
     ConfirmationResponse confirmReservation(String reservationId);

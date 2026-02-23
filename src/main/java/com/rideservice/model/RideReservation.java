@@ -34,7 +34,7 @@ import java.util.UUID;
                 @Index(name = "idx_ride_bookings_expires", columnList = "expires_at"),
                 @Index(name = "idx_ride_bookings_uuid", columnList = "booking_uuid")
         })
-public class RideBooking extends BaseEntity {
+public class RideReservation extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

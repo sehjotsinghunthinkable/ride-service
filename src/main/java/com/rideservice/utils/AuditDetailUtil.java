@@ -1,7 +1,7 @@
 package com.rideservice.utils;
 
 import com.rideservice.model.Ride;
-import com.rideservice.model.RideBooking;
+import com.rideservice.model.RideReservation;
 import com.rideservice.model.RideStop;
 import org.springframework.stereotype.Component;
 
@@ -15,8 +15,8 @@ public class AuditDetailUtil {
 //        ride.setCreatedBy(ride.getCreatedBy());
     }
 
-    public static void addRideBookingCreationDetails(RideBooking rideBooking) {
-        rideBooking.setCreatedAt(LocalDateTime.now());
+    public static void addRideBookingCreationDetails(RideReservation rideReservation) {
+        rideReservation.setCreatedAt(LocalDateTime.now());
 //        rideSegmentSeat.setCreatedBy(rideSegmentSeat.getCreatedBy());
     }
 

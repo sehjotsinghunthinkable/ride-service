@@ -79,13 +79,13 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
     Optional<Ride> findByUuid(String rideUuid);
 
     // Check if ride has any bookings (RESERVED or CONFIRMED)
-    @Query("SELECT COUNT(b) > 0 FROM RideBooking b " +
+    @Query("SELECT COUNT(b) > 0 FROM RideReservation b " +
             "WHERE b.ride.uuid = :rideUuid " +
             "AND b.status IN ('RESERVED', 'CONFIRMED')")
     boolean hasActiveBookings(@Param("rideUuid") String rideUuid);
 
     // Get booking count for a ride
-    @Query("SELECT COUNT(b) FROM RideBooking b " +
+    @Query("SELECT COUNT(b) FROM RideReservation b " +
             "WHERE b.ride.uuid = :rideUuid " +
             "AND b.status IN ('RESERVED', 'CONFIRMED')")
     int getActiveBookingCount(@Param("rideUuid") String rideUuid);
@@ -190,8 +190,8 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
                 AND dest.is_deleted = false
                 AND dest.sequence > src.sequence
             WHERE r.is_deleted = false
-                AND r.start_time >= :dayStart
-                AND r.start_time < :dayEnd
+                AND r.start_time + (src.duration_offset * INTERVAL '1 minute') >= :dayStart
+                AND r.start_time + (src.duration_offset * INTERVAL '1 minute') < :dayEnd
                 AND (r.start_time + (src.duration_offset * INTERVAL '1 minute')) >= NOW()
         )
         SELECT 

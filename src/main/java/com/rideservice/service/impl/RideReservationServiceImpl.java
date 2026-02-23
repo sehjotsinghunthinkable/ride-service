@@ -12,15 +12,14 @@ import com.rideservice.mapper.RideSearchMapper;
 import com.rideservice.model.BookingStatus;
 import com.rideservice.model.Location;
 import com.rideservice.model.Ride;
-import com.rideservice.model.RideBooking;
+import com.rideservice.model.RideReservation;
 import com.rideservice.model.RideStop;
 import com.rideservice.repository.LocationRepository;
-import com.rideservice.repository.RideBookingRepository;
+import com.rideservice.repository.RideReservationRepository;
 import com.rideservice.repository.RideRepository;
-import com.rideservice.service.RideBookingService;
+import com.rideservice.service.RideReservationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -36,18 +35,18 @@ import static com.rideservice.utils.AuditDetailUtil.addRideBookingCreationDetail
 
 @Service
 @Slf4j
-public class RideBookingServiceImpl implements RideBookingService {
+public class RideReservationServiceImpl implements RideReservationService {
 
     private final RideRepository rideRepository;
     private final LocationRepository locationRepository;
     private final RideSearchMapper rideSearchMapper;
-    private final RideBookingRepository rideBookingRepository;
+    private final RideReservationRepository rideReservationRepository;
 
-    public RideBookingServiceImpl(RideRepository rideRepository, LocationRepository locationRepository, RideSearchMapper rideSearchMapper, RideBookingRepository rideBookingRepository) {
+    public RideReservationServiceImpl(RideRepository rideRepository, LocationRepository locationRepository, RideSearchMapper rideSearchMapper, RideReservationRepository rideReservationRepository) {
         this.rideRepository = rideRepository;
         this.locationRepository = locationRepository;
         this.rideSearchMapper = rideSearchMapper;
-        this.rideBookingRepository = rideBookingRepository;
+        this.rideReservationRepository = rideReservationRepository;
     }
 
     @Cacheable(value = SEARCH_RESULTS_CACHE,
@@ -159,7 +158,7 @@ public class RideBookingServiceImpl implements RideBookingService {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid destination - must be after source"));
 
         // 3. Check availability with PESSIMISTIC LOCK
-        Integer bookedSeats = rideBookingRepository.getTotalBookedSeatsWithLock(
+        Integer bookedSeats = rideReservationRepository.getTotalBookedSeatsWithLock(
                 ride.getId(), fromStop.getSequence(), toStop.getSequence());
 
         int availableSeats = ride.getTotalSeats() - bookedSeats;
@@ -174,7 +173,7 @@ public class RideBookingServiceImpl implements RideBookingService {
         }
 
         // 4. Create reservation
-        RideBooking booking = new RideBooking();
+        RideReservation booking = new RideReservation();
         booking.setBookingUuid(UUID.randomUUID().toString());
         booking.setRide(ride);
         booking.setUserId(request.getUserId());
@@ -184,7 +183,7 @@ public class RideBookingServiceImpl implements RideBookingService {
         booking.setStatus(BookingStatus.RESERVED);
         booking.setExpiresAt(LocalDateTime.now().plusMinutes(request.getExpiryMinutes()));
         addRideBookingCreationDetails(booking);
-        RideBooking savedBooking = rideBookingRepository.save(booking);
+        RideReservation savedBooking = rideReservationRepository.save(booking);
         log.info("Reservation created with ID: {}, expires at: {}",
                 savedBooking.getBookingUuid(), savedBooking.getExpiresAt());
 
@@ -216,7 +215,7 @@ public class RideBookingServiceImpl implements RideBookingService {
         log.info("Confirming reservation: {}", reservationId);
 
         // 1. Find reservation
-        RideBooking booking = rideBookingRepository.findByBookingUuid(reservationId)
+        RideReservation booking = rideReservationRepository.findByBookingUuid(reservationId)
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + reservationId));
 
         // 2. Validate can be confirmed
@@ -227,7 +226,7 @@ public class RideBookingServiceImpl implements RideBookingService {
 
         if (booking.getExpiresAt().isBefore(LocalDateTime.now())) {
             booking.setStatus(BookingStatus.EXPIRED);
-            rideBookingRepository.save(booking);
+            rideReservationRepository.save(booking);
             throw new IllegalStateException("Reservation has expired");
         }
 
@@ -235,7 +234,7 @@ public class RideBookingServiceImpl implements RideBookingService {
         booking.setStatus(BookingStatus.CONFIRMED);
         booking.setConfirmedAt(LocalDateTime.now());
 
-        RideBooking confirmed = rideBookingRepository.save(booking);
+        RideReservation confirmed = rideReservationRepository.save(booking);
         log.info("Reservation {} confirmed successfully", reservationId);
 
         return ConfirmationResponse.builder()
@@ -259,7 +258,7 @@ public class RideBookingServiceImpl implements RideBookingService {
     public ReleaseResponse releaseReservation(String reservationId, String reason) {
         log.info("Releasing reservation: {}, reason: {}", reservationId, reason);
 
-        RideBooking booking = rideBookingRepository.findByBookingUuid(reservationId)
+        RideReservation booking = rideReservationRepository.findByBookingUuid(reservationId)
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + reservationId));
 
         if (booking.getStatus() != BookingStatus.RESERVED) {
@@ -271,7 +270,7 @@ public class RideBookingServiceImpl implements RideBookingService {
         booking.setCancelledAt(LocalDateTime.now());
         booking.setCancellationReason(reason);
 
-        rideBookingRepository.save(booking);
+        rideReservationRepository.save(booking);
         log.info("Reservation {} released/cancelled", reservationId);
 
         return ReleaseResponse.builder()
@@ -293,13 +292,13 @@ public class RideBookingServiceImpl implements RideBookingService {
     public ReleaseResponse expireReservation(String reservationId) {
         log.info("Expiring reservation: {}", reservationId);
 
-        RideBooking booking = rideBookingRepository.findByBookingUuid(reservationId)
+        RideReservation booking = rideReservationRepository.findByBookingUuid(reservationId)
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + reservationId));
 
         booking.setStatus(BookingStatus.EXPIRED);
         booking.setCancellationReason("Auto-expired after " + booking.getExpiresAt());
 
-        rideBookingRepository.save(booking);
+        rideReservationRepository.save(booking);
 
         return ReleaseResponse.builder()
                 .reservationId(booking.getBookingUuid())
@@ -311,7 +310,7 @@ public class RideBookingServiceImpl implements RideBookingService {
     @Override
     @Transactional(readOnly = true)
     public ReservationResponse getReservationStatus(String reservationId) {
-        RideBooking booking = rideBookingRepository.findByBookingUuid(reservationId)
+        RideReservation booking = rideReservationRepository.findByBookingUuid(reservationId)
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + reservationId));
 
         Ride ride = booking.getRide();
@@ -339,7 +338,7 @@ public class RideBookingServiceImpl implements RideBookingService {
                 .build();
     }
 
-    private Long calculatePrice(RideBooking booking) {
+    private Long calculatePrice(RideReservation booking) {
         Ride ride = booking.getRide();
         RideStop fromStop = ride.getRideStops().stream()
                 .filter(rs -> rs.getSequence().equals(booking.getFromSequence()))

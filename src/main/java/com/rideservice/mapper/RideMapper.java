@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -32,6 +33,9 @@ public class RideMapper {
         // Validate minimum stops
         if (rideCreationDto.getStops() == null || rideCreationDto.getStops().size() < 2) {
             throw new IllegalArgumentException("At least 2 stops are required");
+        }
+        if(rideCreationDto.getStartTime().isBefore(LocalDateTime.now())){
+            throw new IllegalArgumentException("Departure time cannot be before current time.");
         }
 
         // 1. Create ride
