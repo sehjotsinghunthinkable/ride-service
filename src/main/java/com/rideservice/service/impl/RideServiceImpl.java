@@ -14,6 +14,7 @@ import com.rideservice.model.Ride;
 import com.rideservice.model.RideStop;
 import com.rideservice.repository.LocationRepository;
 import com.rideservice.repository.RideRepository;
+import com.rideservice.repository.RideReservationRepository;
 import com.rideservice.service.RideService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ public class RideServiceImpl implements RideService {
     private final RideRepository rideRepository;
     private final RideMapper rideMapper;
     private final LocationRepository locationRepository;
+    private final RideReservationRepository rideReservationRepository;
 
     @CacheEvict(
             value = {
@@ -142,8 +144,8 @@ public class RideServiceImpl implements RideService {
         Ride ride = rideRepository.findByUuidWithStops(rideUuid)
                 .orElseThrow(() -> new IllegalArgumentException("Ride not found: " + rideUuid));
 
-        boolean hasActiveBookings = rideRepository.hasActiveBookings(rideUuid);
-        int activeBookingCount = rideRepository.getActiveBookingCount(rideUuid);
+        boolean hasActiveBookings = rideReservationRepository.hasActiveBookings(rideUuid);
+        int activeBookingCount = rideReservationRepository.getActiveBookingCount(rideUuid);
 
         if (hasActiveBookings) {
             log.warn("Cannot update ride {} - has {} active bookings", rideUuid, activeBookingCount);
@@ -199,8 +201,8 @@ public class RideServiceImpl implements RideService {
         Ride ride = rideRepository.findByUuid(rideUuid)
                 .orElseThrow(() -> new IllegalArgumentException("Ride not found: " + rideUuid));
 
-        boolean hasActiveBookings = rideRepository.hasActiveBookings(rideUuid);
-        int activeBookingCount = rideRepository.getActiveBookingCount(rideUuid);
+        boolean hasActiveBookings = rideReservationRepository.hasActiveBookings(rideUuid);
+        int activeBookingCount = rideReservationRepository.getActiveBookingCount(rideUuid);
 
         if (hasActiveBookings) {
             log.warn("Cannot delete ride {} - has {} active bookings", rideUuid, activeBookingCount);

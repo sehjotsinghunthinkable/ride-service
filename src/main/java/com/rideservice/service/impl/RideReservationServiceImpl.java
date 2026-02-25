@@ -9,7 +9,7 @@ import com.rideservice.dto.ride.response.RideSearchProjection;
 import com.rideservice.dto.ride.response.RideSearchResponse;
 import com.rideservice.exception.SeatUnavailableException;
 import com.rideservice.mapper.RideSearchMapper;
-import com.rideservice.model.BookingStatus;
+import com.rideservice.constants.enums.BookingStatus;
 import com.rideservice.model.Location;
 import com.rideservice.model.Ride;
 import com.rideservice.model.RideReservation;
@@ -174,7 +174,7 @@ public class RideReservationServiceImpl implements RideReservationService {
 
         // 4. Create reservation
         RideReservation booking = new RideReservation();
-        booking.setBookingUuid(UUID.randomUUID().toString());
+        booking.setReservationUuid(UUID.randomUUID().toString());
         booking.setRide(ride);
         booking.setUserId(request.getUserId());
         booking.setFromSequence(fromStop.getSequence());
@@ -185,11 +185,11 @@ public class RideReservationServiceImpl implements RideReservationService {
         addRideBookingCreationDetails(booking);
         RideReservation savedBooking = rideReservationRepository.save(booking);
         log.info("Reservation created with ID: {}, expires at: {}",
-                savedBooking.getBookingUuid(), savedBooking.getExpiresAt());
+                savedBooking.getReservationUuid(), savedBooking.getExpiresAt());
 
         // 5. Build response
         return ReservationResponse.builder()
-                .reservationId(savedBooking.getBookingUuid())
+                .reservationId(savedBooking.getReservationUuid())
                 .rideUuid(ride.getUuid())
                 .fromStop(request.getFromStop().toString())
                 .toStop(request.getToStop().toString())
@@ -215,7 +215,7 @@ public class RideReservationServiceImpl implements RideReservationService {
         log.info("Confirming reservation: {}", reservationId);
 
         // 1. Find reservation
-        RideReservation booking = rideReservationRepository.findByBookingUuid(reservationId)
+        RideReservation booking = rideReservationRepository.findByReservationUuid(reservationId)
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + reservationId));
 
         // 2. Validate can be confirmed
@@ -238,7 +238,7 @@ public class RideReservationServiceImpl implements RideReservationService {
         log.info("Reservation {} confirmed successfully", reservationId);
 
         return ConfirmationResponse.builder()
-                .reservationId(confirmed.getBookingUuid())
+                .reservationId(confirmed.getReservationUuid())
                 .rideUuid(confirmed.getRide().getUuid())
                 .status(confirmed.getStatus().name())
                 .confirmedAt(confirmed.getConfirmedAt())
@@ -258,7 +258,7 @@ public class RideReservationServiceImpl implements RideReservationService {
     public ReleaseResponse releaseReservation(String reservationId, String reason) {
         log.info("Releasing reservation: {}, reason: {}", reservationId, reason);
 
-        RideReservation booking = rideReservationRepository.findByBookingUuid(reservationId)
+        RideReservation booking = rideReservationRepository.findByReservationUuid(reservationId)
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + reservationId));
 
         if (booking.getStatus() != BookingStatus.RESERVED) {
@@ -274,7 +274,7 @@ public class RideReservationServiceImpl implements RideReservationService {
         log.info("Reservation {} released/cancelled", reservationId);
 
         return ReleaseResponse.builder()
-                .reservationId(booking.getBookingUuid())
+                .reservationId(booking.getReservationUuid())
                 .status(booking.getStatus().name())
                 .message("Reservation cancelled successfully")
                 .build();
@@ -292,7 +292,7 @@ public class RideReservationServiceImpl implements RideReservationService {
     public ReleaseResponse expireReservation(String reservationId) {
         log.info("Expiring reservation: {}", reservationId);
 
-        RideReservation booking = rideReservationRepository.findByBookingUuid(reservationId)
+        RideReservation booking = rideReservationRepository.findByReservationUuid(reservationId)
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + reservationId));
 
         booking.setStatus(BookingStatus.EXPIRED);
@@ -301,7 +301,7 @@ public class RideReservationServiceImpl implements RideReservationService {
         rideReservationRepository.save(booking);
 
         return ReleaseResponse.builder()
-                .reservationId(booking.getBookingUuid())
+                .reservationId(booking.getReservationUuid())
                 .status(booking.getStatus().name())
                 .message("Reservation expired")
                 .build();
@@ -310,7 +310,7 @@ public class RideReservationServiceImpl implements RideReservationService {
     @Override
     @Transactional(readOnly = true)
     public ReservationResponse getReservationStatus(String reservationId) {
-        RideReservation booking = rideReservationRepository.findByBookingUuid(reservationId)
+        RideReservation booking = rideReservationRepository.findByReservationUuid(reservationId)
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + reservationId));
 
         Ride ride = booking.getRide();
@@ -325,7 +325,7 @@ public class RideReservationServiceImpl implements RideReservationService {
         Long price = toStop.getPrice() - fromStop.getPrice();
 
         return ReservationResponse.builder()
-                .reservationId(booking.getBookingUuid())
+                .reservationId(booking.getReservationUuid())
                 .rideUuid(ride.getUuid())
                 .fromStop(fromStopName)
                 .toStop(toStopName)

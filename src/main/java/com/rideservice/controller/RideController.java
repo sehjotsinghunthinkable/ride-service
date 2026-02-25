@@ -75,8 +75,8 @@ public class RideController {
             @RequestParam Locations from,
             @RequestParam Locations to,
 
-            @Parameter(description = "Departure date and time",
-                    example = "2024-01-15T10:00:00", required = true)
+            @Parameter(description = "Departure date",
+                    example = "2024-01-15", required = true)
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate departureDate) {
 

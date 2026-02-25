@@ -1,6 +1,6 @@
 package com.rideservice.scheduler;
 
-import com.rideservice.model.BookingStatus;
+import com.rideservice.constants.enums.BookingStatus;
 import com.rideservice.model.RideReservation;
 import com.rideservice.repository.RideReservationRepository;
 import jakarta.transaction.Transactional;
@@ -55,13 +55,13 @@ public class ReservationExpiryScheduler {
                     expiredCount++;
 
                     log.info("Expired reservation: {} for ride {} (expired at {})",
-                            booking.getBookingUuid(),
+                            booking.getReservationUuid(),
                             booking.getRide().getUuid(),
                             booking.getExpiresAt());
                 }
             } catch (Exception e) {
                 failedCount++;
-                log.error("Failed to expire reservation: {}", booking.getBookingUuid(), e);
+                log.error("Failed to expire reservation: {}", booking.getReservationUuid(), e);
             }
         }
 

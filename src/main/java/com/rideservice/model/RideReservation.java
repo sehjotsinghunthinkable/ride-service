@@ -1,5 +1,6 @@
 package com.rideservice.model;
 
+import com.rideservice.constants.enums.BookingStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -27,7 +28,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "ride_bookings",
+@Table(name = "ride_reservation",
         indexes = {
                 @Index(name = "idx_ride_bookings_ride_id", columnList = "ride_id"),
                 @Index(name = "idx_ride_bookings_status", columnList = "status"),
@@ -41,7 +42,7 @@ public class RideReservation extends BaseEntity {
     private Long id;
 
     @Column(name = "booking_uuid", nullable = false, unique = true)
-    private String bookingUuid;
+    private String reservationUuid;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ride_id", nullable = false)
@@ -81,8 +82,8 @@ public class RideReservation extends BaseEntity {
 
     @PrePersist
     public void prePersist() {
-        if (bookingUuid == null) {
-            bookingUuid = UUID.randomUUID().toString();
+        if (reservationUuid == null) {
+            reservationUuid = UUID.randomUUID().toString();
         }
         if (status == BookingStatus.RESERVED && expiresAt == null) {
             expiresAt = LocalDateTime.now().plusMinutes(10); // 10 minute expiry

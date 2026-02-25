@@ -1,6 +1,6 @@
 package com.rideservice.repository;
 
-import com.rideservice.model.BookingStatus;
+import com.rideservice.constants.enums.BookingStatus;
 import com.rideservice.model.RideReservation;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,7 +18,7 @@ import java.util.Optional;
 public interface RideReservationRepository extends JpaRepository<RideReservation, Long> {
 
     // Find by UUID (for confirmation/cancellation)
-    Optional<RideReservation> findByBookingUuid(String bookingUuid);
+    Optional<RideReservation> findByReservationUuid(String bookingUuid);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM RideReservation b WHERE b.ride.id = :rideId AND b.status IN :statuses")
@@ -47,12 +47,6 @@ public interface RideReservationRepository extends JpaRepository<RideReservation
                                         @Param("fromSequence") Long fromSequence,
                                         @Param("toSequence") Long toSequence);
 
-    // Find expired reservations (for background job)
-    @Query("SELECT b FROM RideReservation b " +
-            "WHERE b.status = 'RESERVED' " +
-            "AND b.expiresAt < :now")
-    List<RideReservation> findExpiredReservations(@Param("now") LocalDateTime now);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM RideReservation b " +
             "WHERE b.status = 'RESERVED' " +
@@ -66,26 +60,15 @@ public interface RideReservationRepository extends JpaRepository<RideReservation
             "WHERE b.status = 'RESERVED' AND b.expiresAt < :now")
     int bulkExpireReservations(@Param("now") LocalDateTime now);
 
-    @Modifying
-    @Query("UPDATE RideReservation b SET b.status = :status WHERE b.bookingUuid = :bookingUuid")
-    int updateStatus(@Param("bookingUuid") String bookingUuid,
-                     @Param("status") BookingStatus status);
-
-    // Check if there are any overlapping bookings for a ride
     @Query("SELECT COUNT(b) > 0 FROM RideReservation b " +
-            "WHERE b.ride.id = :rideId " +
-            "AND b.status IN ('RESERVED', 'CONFIRMED') " +
-            "AND b.fromSequence < :toSequence " +
-            "AND b.toSequence > :fromSequence")
-    boolean hasOverlappingBookings(@Param("rideId") Long rideId,
-                                   @Param("fromSequence") Long fromSequence,
-                                   @Param("toSequence") Long toSequence);
+            "WHERE b.ride.uuid = :rideUuid " +
+            "AND b.status IN ('RESERVED', 'CONFIRMED')")
+    boolean hasActiveBookings(@Param("rideUuid") String rideUuid);
 
-    // For optimistic locking updates
-    @Modifying
-    @Query("UPDATE RideReservation b SET b.status = :status, b.version = b.version + 1 " +
-            "WHERE b.bookingUuid = :bookingUuid AND b.version = :version")
-    int updateStatusWithVersion(@Param("bookingUuid") String bookingUuid,
-                                @Param("status") BookingStatus status,
-                                @Param("version") Integer version);
+    // Get booking count for a ride
+    @Query("SELECT COUNT(b) FROM RideReservation b " +
+            "WHERE b.ride.uuid = :rideUuid " +
+            "AND b.status IN ('RESERVED', 'CONFIRMED')")
+    int getActiveBookingCount(@Param("rideUuid") String rideUuid);
+
 }

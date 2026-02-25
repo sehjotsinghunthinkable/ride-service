@@ -1,4 +1,4 @@
-package com.rideservice.model;
+package com.rideservice.constants.enums;
 
 public enum BookingStatus {
     RESERVED,    // Held for 10 minutes during payment
