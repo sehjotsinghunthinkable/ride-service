@@ -165,14 +165,13 @@ public class RideReservationServiceImpl implements RideReservationService {
         }
 
         RideReservation booking = new RideReservation();
-        booking.setReservationUuid(UUID.randomUUID().toString());
+        booking.setReservationUuid(request.getBookingUuid());
         booking.setRide(ride);
         booking.setUserId(request.getUserId());
         booking.setFromSequence(fromStop.getSequence());
         booking.setToSequence(toStop.getSequence());
         booking.setSeatsBooked(request.getSeats());
         booking.setStatus(BookingStatus.RESERVED);
-        booking.setExpiresAt(LocalDateTime.now().plusMinutes(request.getExpiryMinutes()));
         addRideBookingCreationDetails(booking);
         RideReservation savedBooking = rideReservationRepository.save(booking);
         log.info("Reservation created with ID: {}, expires at: {}",

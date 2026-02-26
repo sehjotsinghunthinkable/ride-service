@@ -26,6 +26,5 @@ public class ReserveSeatsRequest {
     @Min(value = 1, message = "At least 1 seat must be booked")
     private Integer seats;
 
-    @Builder.Default
-    private Integer expiryMinutes = 10;
+    private String bookingUuid;
 }
