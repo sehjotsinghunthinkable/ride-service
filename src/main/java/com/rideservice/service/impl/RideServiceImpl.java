@@ -167,7 +167,6 @@ public class RideServiceImpl implements RideService {
         }
 
         if (request.getStops() != null && !request.getStops().isEmpty()) {
-            // Validate minimum stops
             if (request.getStops().size() < 2) {
                 throw new IllegalArgumentException("At least 2 stops are required");
             }

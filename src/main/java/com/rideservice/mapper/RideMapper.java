@@ -75,6 +75,10 @@ public class RideMapper {
                     throw new IllegalArgumentException(
                             "Price must be positive for stop: " + stopsDto.getName());
                 }
+                StopsDto previousStopDto = stopsDtos.get(i-1);
+                if (stopsDto.getName() == previousStopDto.getName()){
+                    throw new IllegalArgumentException("Continuous stops cannot have same location : " + stopsDto.getName());
+                }
             }
 
             Location location = locationService.getLocation(stopsDto.getName().toString());

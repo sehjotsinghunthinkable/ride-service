@@ -75,7 +75,7 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
 
         LEFT JOIN LATERAL (
             SELECT SUM(b.seats_booked) AS reservedSeats
-            FROM ride_bookings b
+            FROM ride_reservation b
             WHERE b.ride_id = rc.rideId
               AND b.status IN ('RESERVED', 'CONFIRMED')
               AND b.from_sequence < rc.toSequence
@@ -129,7 +129,7 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
             rc.price as price,
             (rc.totalSeats - COALESCE((
                 SELECT SUM(b.seats_booked)
-                FROM ride_bookings b
+                FROM ride_reservation b
                 WHERE b.ride_id = rc.rideId
                     AND b.status IN ('RESERVED', 'CONFIRMED')
                     AND b.from_sequence < rc.toSequence
@@ -140,7 +140,7 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
         FROM ride_candidates rc
         WHERE (rc.totalSeats - COALESCE((
                 SELECT SUM(b.seats_booked)
-                FROM ride_bookings b
+                FROM ride_reservation b
                 WHERE b.ride_id = rc.rideId
                     AND b.status IN ('RESERVED', 'CONFIRMED')
                     AND b.from_sequence < rc.toSequence
@@ -205,7 +205,7 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
         
         LEFT JOIN LATERAL (
             SELECT SUM(b.seats_booked) AS reservedSeats
-            FROM ride_bookings b
+            FROM ride_reservation b
             WHERE b.ride_id = rc.rideId
               AND b.status IN ('RESERVED', 'CONFIRMED')
               AND b.from_sequence < rc.toSequence

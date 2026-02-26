@@ -33,7 +33,8 @@ import java.util.UUID;
                 @Index(name = "idx_ride_bookings_ride_id", columnList = "ride_id"),
                 @Index(name = "idx_ride_bookings_status", columnList = "status"),
                 @Index(name = "idx_ride_bookings_expires", columnList = "expires_at"),
-                @Index(name = "idx_ride_bookings_uuid", columnList = "booking_uuid")
+                @Index(name = "idx_ride_bookings_uuid", columnList = "booking_uuid"),
+                @Index(name = "idx_expiry", columnList = "status, expires_at")
         })
 public class RideReservation extends BaseEntity {
 

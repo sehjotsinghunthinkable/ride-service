@@ -68,6 +68,55 @@ public class ReservationExpiryScheduler {
         log.info("Expiry job completed: {} expired, {} failed", expiredCount, failedCount);
     }
 
+//    @Scheduled(fixedDelay = 60000)
+//    @Transactional
+//    public void expireReservations() {
+//        LocalDateTime startTime = LocalDateTime.now();
+//        int totalProcessed = 0;
+//        int batchSize = 100;
+//
+//        log.info("Starting expiry job at {}", startTime);
+//
+//        try {
+//            while (true) {
+//                List<RideReservation> batch = rideReservationRepository
+//                        .findAndLockExpiredReservations(LocalDateTime.now(), batchSize);
+//
+//                if (batch.isEmpty()) {
+//                    log.info("No more expired reservations to process");
+//                    break;
+//                }
+//
+//                int expired = 0;
+//                for (RideReservation reservation : batch) {
+//                    if (reservation.getStatus() == BookingStatus.RESERVED) {
+//                        reservation.setStatus(BookingStatus.EXPIRED);
+//                        reservation.setCancellationReason("Auto-expired");
+//                        expired++;
+//                    }
+//                }
+//
+//                rideReservationRepository.saveAll(batch);
+//                totalProcessed += batch.size();
+//
+//                log.info("Processed batch of {} ({} expired), total: {}",
+//                        batch.size(), expired, totalProcessed);
+//
+//                // Check if we've been running too long
+//                if (Duration.between(startTime, LocalDateTime.now()).toMinutes() > 5) {
+//                    log.warn("Expiry job running for 5+ minutes, pausing to avoid issues");
+//                    break;
+//                }
+//            }
+//
+//            log.info("Expiry job completed. Total processed: {}", totalProcessed);
+//
+//        } catch (Exception e) {
+//            log.error("Expiry job failed after processing {} records", totalProcessed, e);
+//            throw e; // Let transaction roll back if needed
+//        }
+//    }
+
     /**
      * clean up very old expired reservations
      */
