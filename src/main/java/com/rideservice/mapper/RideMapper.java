@@ -3,10 +3,8 @@ package com.rideservice.mapper;
 import com.rideservice.dto.ride.request.RideCreationDto;
 import com.rideservice.dto.ride.request.StopsDto;
 import com.rideservice.dto.ride.response.RideResponseDto;
-import com.rideservice.dto.ride.response.StopsResponseDto;
 import com.rideservice.model.Location;
 import com.rideservice.model.Ride;
-import com.rideservice.model.RideSegmentSeat;
 import com.rideservice.model.RideStop;
 import com.rideservice.service.LocationService;
 import lombok.RequiredArgsConstructor;
@@ -15,10 +13,8 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static com.rideservice.utils.AuditDetailUtil.addRideCreationDetails;
 import static com.rideservice.utils.AuditDetailUtil.addRideStopCreationDetails;
@@ -30,7 +26,6 @@ public class RideMapper {
     private final LocationService locationService;
 
     public Ride toRide(RideCreationDto rideCreationDto) {
-        // Validate minimum stops
         if (rideCreationDto.getStops() == null || rideCreationDto.getStops().size() < 2) {
             throw new IllegalArgumentException("At least 2 stops are required");
         }
@@ -38,7 +33,6 @@ public class RideMapper {
             throw new IllegalArgumentException("Departure time cannot be before current time.");
         }
 
-        // 1. Create ride
         Ride ride = new Ride();
         ride.setCarId(rideCreationDto.getCarId());
         ride.setDriverId(rideCreationDto.getDriverId());
@@ -47,7 +41,6 @@ public class RideMapper {
         ride.setUuid(UUID.randomUUID().toString());
         addRideCreationDetails(ride);
 
-        // 2. Create stops with cumulative values
         List<RideStop> stops = createStopsWithCumulativeValues(rideCreationDto, ride);
         ride.setRideStops(stops);
 
@@ -67,7 +60,6 @@ public class RideMapper {
             StopsDto stopsDto = stopsDtos.get(i);
 
             if (i == 0) {
-                // First stop validation
                 if (stopsDto.getDurationOffset() != 0) {
                     throw new IllegalArgumentException("First stop must have durationOffset = 0");
                 }
@@ -75,7 +67,6 @@ public class RideMapper {
                     throw new IllegalArgumentException("First stop must have price = 0");
                 }
             } else {
-                // Validate positive values for non-first stops
                 if (stopsDto.getDurationOffset() <= 0) {
                     throw new IllegalArgumentException(
                             "Duration offset must be positive for stop: " + stopsDto.getName());
@@ -88,12 +79,10 @@ public class RideMapper {
 
             Location location = locationService.getLocation(stopsDto.getName().toString());
 
-            // Create stop
             RideStop rideStop = new RideStop();
             rideStop.setStop(location);
             rideStop.setSequence((long) i);
 
-            // Set cumulative values
             if (i == 0) {
                 rideStop.setDurationOffset(0L);
                 rideStop.setPrice(0L);
@@ -111,7 +100,6 @@ public class RideMapper {
             rideStops.add(rideStop);
         }
 
-        // Validate that stops are in chronological order
         validateStopsOrder(rideStops);
 
         return rideStops;

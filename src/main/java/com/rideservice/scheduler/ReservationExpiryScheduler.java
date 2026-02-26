@@ -69,9 +69,9 @@ public class ReservationExpiryScheduler {
     }
 
     /**
-     * Runs less frequently to clean up very old expired reservations
+     * clean up very old expired reservations
      */
-    @Scheduled(cron = "0 0 2 * * ?") // Run at 2 AM every day
+    @Scheduled(cron = "0 0 2 * * ?") // 2 AM every day
     @Transactional
     public void cleanupOldExpiredReservations() {
         log.info("Running cleanup job for old expired reservations");

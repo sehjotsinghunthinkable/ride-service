@@ -78,7 +78,7 @@ public class RideReservation extends BaseEntity {
 
     @Version
     @Column(name = "version")
-    private Integer version = 0;  // For optimistic locking
+    private Integer version = 0;  // optimistic locking
 
     @PrePersist
     public void prePersist() {
@@ -86,7 +86,7 @@ public class RideReservation extends BaseEntity {
             reservationUuid = UUID.randomUUID().toString();
         }
         if (status == BookingStatus.RESERVED && expiresAt == null) {
-            expiresAt = LocalDateTime.now().plusMinutes(10); // 10 minute expiry
+            expiresAt = LocalDateTime.now().plusMinutes(10);
         }
     }
 }

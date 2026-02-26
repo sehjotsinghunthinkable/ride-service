@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 public class ConfirmationResponse {
     private String reservationId;
     private String rideUuid;
-    private String status;  // CONFIRMED
+    private String status;
     private LocalDateTime confirmedAt;
     private Long finalPrice;
 }

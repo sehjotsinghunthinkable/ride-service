@@ -12,5 +12,5 @@ import lombok.NoArgsConstructor;
 public class RideUpdateResponse {
     private String rideUuid;
     private String message;
-    private int activeBookingCount;  // number of bookings that prevented update
+    private int activeBookingCount;
 }

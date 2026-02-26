@@ -55,10 +55,8 @@ public class RideReservationServiceImpl implements RideReservationService {
     @Transactional(readOnly = true)
     public List<RideSearchResponse> searchRides(RideSearchRequest request) {
 
-        // 1. Validate request
         validateSearchRequest(request);
 
-        // 2. Get location entities
         Location fromLocation = locationRepository.findByName(request.getFromStop().toString().toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException(
                         String.format("Source location '%s' not found", request.getFromStop())));
@@ -67,7 +65,6 @@ public class RideReservationServiceImpl implements RideReservationService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         String.format("Destination location '%s' not found", request.getToStop())));
 
-        // 3. Prepare date range for the entire day
         LocalDateTime dayStart = request.getDepartureDate().atStartOfDay();
         LocalDateTime dayEnd = dayStart.plusDays(1);
 
@@ -76,7 +73,6 @@ public class RideReservationServiceImpl implements RideReservationService {
                 request.getToStop(), toLocation.getId(),
                 request.getDepartureDate(), dayStart, dayEnd);
 
-        // 4. Execute search with projection
         List<RideSearchProjection> projections = rideRepository.searchAvailableRides(
                 fromLocation.getId(),
                 request.getFromStop().toString(),
@@ -84,10 +80,9 @@ public class RideReservationServiceImpl implements RideReservationService {
                 request.getToStop().toString(),
                 dayStart,
                 dayEnd,
-                100  // limit
+                100
         );
 
-        // 5. Convert projections to response DTOs
         List<RideSearchResponse> responses = rideSearchMapper.toResponseList(projections);
 
         log.info("Search completed: found {} rides", responses.size());
@@ -135,11 +130,9 @@ public class RideReservationServiceImpl implements RideReservationService {
                 request.getSeats(), rideUuid, request.getFromStop(),
                 request.getToStop(), request.getUserId());
 
-        // 1. Get ride with validation
         Ride ride = rideRepository.findByUuidWithStops(rideUuid)
                 .orElseThrow(() -> new IllegalArgumentException("Ride not found: " + rideUuid));
 
-        // 2. Get stop sequences
         Location fromLocation = locationRepository.findByName(request.getFromStop().toString().toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("Source stop not found: " + request.getFromStop()));
 
@@ -157,7 +150,6 @@ public class RideReservationServiceImpl implements RideReservationService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Invalid destination - must be after source"));
 
-        // 3. Check availability with PESSIMISTIC LOCK
         Integer bookedSeats = rideReservationRepository.getTotalBookedSeatsWithLock(
                 ride.getId(), fromStop.getSequence(), toStop.getSequence());
 
@@ -172,7 +164,6 @@ public class RideReservationServiceImpl implements RideReservationService {
             );
         }
 
-        // 4. Create reservation
         RideReservation booking = new RideReservation();
         booking.setReservationUuid(UUID.randomUUID().toString());
         booking.setRide(ride);
@@ -187,7 +178,6 @@ public class RideReservationServiceImpl implements RideReservationService {
         log.info("Reservation created with ID: {}, expires at: {}",
                 savedBooking.getReservationUuid(), savedBooking.getExpiresAt());
 
-        // 5. Build response
         return ReservationResponse.builder()
                 .reservationId(savedBooking.getReservationUuid())
                 .rideUuid(ride.getUuid())
@@ -214,11 +204,9 @@ public class RideReservationServiceImpl implements RideReservationService {
     public ConfirmationResponse confirmReservation(String reservationId) {
         log.info("Confirming reservation: {}", reservationId);
 
-        // 1. Find reservation
         RideReservation booking = rideReservationRepository.findByReservationUuid(reservationId)
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + reservationId));
 
-        // 2. Validate can be confirmed
         if (booking.getStatus() != BookingStatus.RESERVED) {
             throw new IllegalStateException(
                     String.format("Cannot confirm reservation with status: %s", booking.getStatus()));
@@ -230,7 +218,6 @@ public class RideReservationServiceImpl implements RideReservationService {
             throw new IllegalStateException("Reservation has expired");
         }
 
-        // 3. Update with optimistic locking
         booking.setStatus(BookingStatus.CONFIRMED);
         booking.setConfirmedAt(LocalDateTime.now());
 
@@ -242,7 +229,7 @@ public class RideReservationServiceImpl implements RideReservationService {
                 .rideUuid(confirmed.getRide().getUuid())
                 .status(confirmed.getStatus().name())
                 .confirmedAt(confirmed.getConfirmedAt())
-                .finalPrice(calculatePrice(confirmed)) // Implement this
+                .finalPrice(calculatePrice(confirmed))
                 .build();
     }
 
@@ -315,7 +302,6 @@ public class RideReservationServiceImpl implements RideReservationService {
 
         Ride ride = booking.getRide();
 
-        // Get stop names
         RideStop fromStop = getRideStopBySequence(ride, booking.getFromSequence());
         RideStop toStop = getRideStopBySequence(ride, booking.getToSequence());
         String fromStopName = fromStop.getStop().getName();

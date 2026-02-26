@@ -16,12 +16,10 @@ import lombok.NoArgsConstructor;
 public class ReserveSeatsRequest {
 
     @NotBlank(message = "User ID is required")
-    private String userId;  // From Booking Service
+    private String userId;
 
-//    @NotBlank(message = "From stop is required")
     private Locations fromStop;
 
-//    @NotBlank(message = "To stop is required")
     private Locations toStop;
 
     @NotNull(message = "Number of seats is required")
@@ -29,5 +27,5 @@ public class ReserveSeatsRequest {
     private Integer seats;
 
     @Builder.Default
-    private Integer expiryMinutes = 10; // Default 10 minutes
+    private Integer expiryMinutes = 10;
 }

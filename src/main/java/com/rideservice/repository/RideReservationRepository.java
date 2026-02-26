@@ -17,7 +17,6 @@ import java.util.Optional;
 @Repository
 public interface RideReservationRepository extends JpaRepository<RideReservation, Long> {
 
-    // Find by UUID (for confirmation/cancellation)
     Optional<RideReservation> findByReservationUuid(String bookingUuid);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -26,7 +25,6 @@ public interface RideReservationRepository extends JpaRepository<RideReservation
             @Param("rideId") Long rideId,
             @Param("statuses") List<BookingStatus> statuses);
 
-    // Calculate total seats booked for a specific segment (including RESERVED)
     @Query("SELECT COALESCE(SUM(b.seatsBooked), 0) FROM RideReservation b " +
             "WHERE b.ride.id = :rideId " +
             "AND b.status IN ('RESERVED', 'CONFIRMED') " +
@@ -36,7 +34,7 @@ public interface RideReservationRepository extends JpaRepository<RideReservation
                                 @Param("fromSequence") Long fromSequence,
                                 @Param("toSequence") Long toSequence);
 
-    // Same query but with pessimistic lock (for reservation)
+    // pessimistic lock (for reservation)
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT COALESCE(SUM(b.seatsBooked), 0) FROM RideReservation b " +
             "WHERE b.ride.id = :rideId " +
@@ -47,14 +45,19 @@ public interface RideReservationRepository extends JpaRepository<RideReservation
                                         @Param("fromSequence") Long fromSequence,
                                         @Param("toSequence") Long toSequence);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT b FROM RideReservation b " +
-            "WHERE b.status = 'RESERVED' " +
-            "AND b.expiresAt < :now " +
-            "ORDER BY b.expiresAt")
+//    @Lock(LockModeType.PESSIMISTIC_WRITE)
+//    @Query("SELECT b FROM RideReservation b " +
+//            "WHERE b.status = 'RESERVED' " +
+//            "AND b.expiresAt < :now " +
+//            "ORDER BY b.expiresAt")
+    @Query(value = "SELECT * FROM ride_reservation r " +
+            "WHERE r.status = 'RESERVED' " +
+            "AND r.expires_at < :now " +
+            "ORDER BY r.expires_at " +
+            "LIMIT 100 FOR UPDATE SKIP LOCKED",
+            nativeQuery = true)
     List<RideReservation> findAndLockExpiredReservations(@Param("now") LocalDateTime now);
 
-    // Bulk update expired reservations
     @Modifying
     @Query("UPDATE RideReservation b SET b.status = 'EXPIRED', b.version = b.version + 1 " +
             "WHERE b.status = 'RESERVED' AND b.expiresAt < :now")
@@ -65,7 +68,6 @@ public interface RideReservationRepository extends JpaRepository<RideReservation
             "AND b.status IN ('RESERVED', 'CONFIRMED')")
     boolean hasActiveBookings(@Param("rideUuid") String rideUuid);
 
-    // Get booking count for a ride
     @Query("SELECT COUNT(b) FROM RideReservation b " +
             "WHERE b.ride.uuid = :rideUuid " +
             "AND b.status IN ('RESERVED', 'CONFIRMED')")

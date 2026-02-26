@@ -12,14 +12,14 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReservationResponse {
-    private String reservationId;  // booking_uuid
+    private String reservationId;
     private String rideUuid;
     private String fromStop;
     private String toStop;
     private Integer seatsReserved;
     private LocalDateTime expiresAt;
     private String status;  // RESERVED
-    private Long price;  // Price for this segment
+    private Long price;
     private LocalDateTime pickupTime;
     private LocalDateTime dropTime;
 }

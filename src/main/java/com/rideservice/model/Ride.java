@@ -24,14 +24,6 @@ public class Ride extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-//    @ManyToOne
-//    @JoinColumn(name = "source_location_id", referencedColumnName = "id")
-//    private Location sourceLocation;
-//
-//    @ManyToOne
-//    @JoinColumn(name = "destination_location_id", referencedColumnName = "id")
-//    private Location destinationLocation;
-
     private LocalDateTime startTime;
 
     private Integer totalSeats;

@@ -12,7 +12,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StopsDto {
-//    @NotBlank(message = "Name cannot be null or empty.")
     private Locations name;
 
     @NotNull(message = "Price cannot be null.")
